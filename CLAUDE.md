@@ -28,7 +28,7 @@ Production code is intentionally dependency light: Bash, PowerShell, a small Nod
 ## Commands
 
 ```bash
-./test.sh                    # full Unix suite (runs test.zsh in an isolated fake home)
+./test.sh                    # full Unix suite (targeted regressions, then test.zsh in an isolated fake home)
 ./test.ps1                   # full Windows suite (run from PowerShell)
 npm test                     # docs, preload, skill bridge/contract/security, package bootstrap and setup lock checks
 npm run test:all             # same as ./test.sh
@@ -38,13 +38,13 @@ npm run test:all             # same as ./test.sh
 Focused checks (fast, no fake home setup) before opening a PR:
 
 ```bash
-node scripts/check-docs.mjs        # community-file + relative Markdown link validation
+node scripts/check-docs.mjs        # community files, Markdown prose lint (dashes/hyphens), links, CHANGELOG, workflow pinning
 node scripts/check-preload.mjs     # preload.cjs integrity
 node --check preload.cjs           # Node syntax check
-node --check skill-bridge.cjs       # shared skill bridge syntax check
-node tests/skill-bridge.test.cjs    # discovery/materialization behavior
-node tests/skill-contract.test.cjs  # Claude/Codex compatibility contract
-node tests/skill-security.test.cjs  # hostile filesystem/plugin inputs
+node --check skill-bridge.cjs      # shared skill bridge syntax check
+node tests/skill-bridge.test.cjs   # discovery/materialization behavior
+node tests/skill-contract.test.cjs # Claude/Codex compatibility contract
+node tests/skill-security.test.cjs # hostile filesystem/plugin inputs
 bash -n claudex codex-session install.sh statusline usage-limit
 zsh -n test.zsh
 git diff --check
@@ -52,7 +52,7 @@ git diff --check
 
 There is no single test runner: `test.zsh`/`test.ps1` are one large suite of isolated regressions using fake homes and fake provider commands (Codex, Claude Code, curl, CLIProxyAPI) so tests never touch a real session. To narrow scope while iterating, grep the suite file for the relevant test function name and read it directly; there's no `--filter` flag.
 
-CI (`.github/workflows/test.yml`) runs the Unix suite on macOS + Ubuntu, the PowerShell suite on Windows, and a `package-artifacts` job (`npm test` + `build-release.sh`) on Ubuntu, on every push to `main` and every PR.
+CI (`.github/workflows/test.yml`) runs on every push to `main` and every PR: the Unix suite on macOS + Ubuntu, the PowerShell suite on Windows, plus three Ubuntu jobs: `package-artifacts` (`npm test` + `scripts/check-release-artifacts.sh`), `node-18-shared-runtime` (`npm test` on the minimum supported Node), and `legacy-linux-node` (managed Node fallback in an Ubuntu 20.04 container).
 
 ## Architecture
 
@@ -78,6 +78,7 @@ sessions, and billing contexts never cross that boundary.
 | Auth bridge | `codex-session` | `codex-session.ps1` | Validate Codex login, atomically sync the minimum credential fields |
 | Usage helper | `usage-limit` | `usage-limit.ps1` | Fetch, sanitize, cache, and display Codex usage limits |
 | Status line | `statusline` | `statusline.ps1` | Render model, effort, stable context %, cached usage status |
+| Self update | `self-update` | `self-update.ps1` | Check GitHub releases and refresh the installed Claudex, lock guarded |
 | Terminal preload | `preload.cjs` | shared | Translate Solplan input and replace only the positioned interactive welcome billing field before restoring native stdout |
 | Skill bridge | `skill-bridge.cjs` | shared | Snapshot and adapt existing Claude/Codex skills and plugin skills without activating source plugin code |
 | Settings template | `settings.json` | shared | Isolated default Claude Code settings written into the managed config |
@@ -98,7 +99,7 @@ Claude Code can emit zero/missing context data transiently during startup and co
 
 ### Update and compatibility strategy
 
-At every launch, `claudex` reads `claude --help` and only injects flags Claude Code actually supports; unrecognized arguments are passed through unchanged. The installer does a best effort Claude Code update; the launcher re checks on a configurable interval without blocking startup, recovers stale lock directories, and avoids racing an explicit update command. The CLIProxyAPI dependency is pinned by version and SHA-256 per OS/arch pair and verified at install time: never vendored into the repo.
+At every launch, `claudex` reads `claude --help` and only injects flags Claude Code actually supports; unrecognized arguments are passed through unchanged. The installer does a best effort Claude Code update; the launcher re checks on a configurable interval without blocking startup, recovers stale lock directories, and avoids racing an explicit update command. Claudex also updates itself: `claudex self-update` runs the installed helper directly, and unless `CLAUDEX_AUTO_UPDATE` is off the launcher spawns that helper as a background check. The CLIProxyAPI dependency is pinned by version and SHA-256 per OS/arch pair and verified at install time: never vendored into the repo.
 
 ### Trust boundaries
 
@@ -131,16 +132,18 @@ Updating the CLIProxyAPI pin is security sensitive: collect every macOS/Linux/Wi
 | --- | --- |
 | `claudex`, `claudex.ps1`, `claudex.cmd` | Cross platform launchers |
 | `install.sh`, `install.ps1`, `install.zsh` | Install and compatibility entry points |
+| `bootstrap.sh`, `bootstrap.ps1` | One command installers: fetch and verify the latest release, then run the platform installer |
 | `codex-session*` | Authentication bridge |
 | `usage-limit*` | Detailed and cached quota reporting |
 | `statusline*` | Stable compact footer |
+| `self-update`, `self-update.ps1` | Claudex self update helpers (GitHub release check, lock guarded refresh) |
 | `preload.cjs` | Byte preserving Solplan input alias and one shot interactive ChatGPT plan label |
 | `skill-bridge.cjs`, `skills/` | Existing skill compatibility, isolated plugin adapters, and platform specific bundled skills |
 | `settings.json`, `env.example` | Reproducible configuration templates |
-| `test.zsh`, `test.ps1`, `test.sh` | Isolated cross platform regression suites |
-| `scripts/` | `build-release.sh`, `check-docs.mjs`, `check-preload.mjs` |
-| `bin/claudex-package.mjs` | package manager bootstrap entrypoint (Homebrew / Scoop / WinGet) |
-| `docs/` | User/maintainer docs: architecture, configuration, development, installation, troubleshooting, usage, compatibility matrix |
+| `test.zsh`, `test.ps1`, `test.sh`, `tests/` | Isolated cross platform regression suites plus targeted helper suites and Node tests |
+| `scripts/` | `build-release.sh`, `check-docs.mjs`, `check-preload.mjs`, `check-release-artifacts.sh`, `create-release-archives.mjs` |
+| `bin/`, `claudex-package.cmd` | Package manager bootstrap entrypoint (Homebrew / Scoop / WinGet) plus the package setup lock helper |
+| `docs/` | User/maintainer docs: architecture, Claude Code compatibility, configuration, development, installation, package managers, skills, troubleshooting, usage |
 
 ## Configuration model
 
