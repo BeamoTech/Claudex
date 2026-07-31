@@ -12,9 +12,12 @@ const helper = path.join(root, 'skill-bridge.cjs');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'claudex-skill-bridge-'));
 const bridgeSource = fs.readFileSync(helper, 'utf8');
 
-assert.match(bridgeSource, /const MAX_FILES = 16384;/);
-assert.match(bridgeSource, /const MAX_FILE_BYTES = 32 \* 1024 \* 1024;/);
-assert.match(bridgeSource, /const MAX_TREE_BYTES = 256 \* 1024 \* 1024;/);
+assert.match(bridgeSource, /const MAX_FILES = 4096;/);
+assert.match(bridgeSource, /const MAX_FILE_BYTES = 16 \* 1024 \* 1024;/);
+assert.match(bridgeSource, /const MAX_TREE_BYTES = 64 \* 1024 \* 1024;/);
+assert.match(bridgeSource, /const MAX_PUBLISHED_FILES = 16384;/);
+assert.match(bridgeSource, /const MAX_PUBLISHED_FILE_BYTES = 32 \* 1024 \* 1024;/);
+assert.match(bridgeSource, /const MAX_PUBLISHED_TREE_BYTES = 256 \* 1024 \* 1024;/);
 
 function write(file, contents) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
