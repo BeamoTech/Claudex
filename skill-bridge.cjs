@@ -9,9 +9,10 @@ const childProcess = require('child_process');
 
 const BRIDGE_SCHEMA = 3;
 const BRIDGE_FORMAT = 'skills-v7-plugin-aliases-20260722';
-const MAX_FILES = 4096;
-const MAX_FILE_BYTES = 16 * 1024 * 1024;
-const MAX_TREE_BYTES = 64 * 1024 * 1024;
+// RooseveltAdvisors fleet skill libraries need room for larger published caches.
+const MAX_FILES = 16384;
+const MAX_FILE_BYTES = 32 * 1024 * 1024;
+const MAX_TREE_BYTES = 256 * 1024 * 1024;
 const MAX_DEPTH = 32;
 const MAX_GENERATIONS_PER_PROJECT = 8;
 const MAX_TOTAL_GENERATIONS = 256;

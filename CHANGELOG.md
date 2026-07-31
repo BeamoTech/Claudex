@@ -5,6 +5,11 @@ uses [Semantic Versioning](https://semver.org/) for tagged releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Raised skill bridge published cache limits for larger RooseveltAdvisors fleet
+  skill libraries.
+
 ## [1.6.2] - 2026-07-22
 
 ### Added

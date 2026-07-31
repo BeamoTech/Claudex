@@ -59,3 +59,11 @@ release workflow verifies the exact archives before publication, and the public
 website installers are tested from fresh Linux, macOS, and Windows runners
 afterward. See [docs/development.md](docs/development.md) for the operational
 release checklist.
+
+## RooseveltAdvisors fork maintenance
+
+RooseveltAdvisors/Claudex is a public fork of BeamoINT/Claudex. Its upstream
+remote is `https://github.com/BeamoINT/Claudex.git`. To sync, fetch upstream
+`main`, then merge or rebase it, resolve conflicts, and keep RooseveltAdvisors
+limit defaults unless upstream has raised them higher. Fleet installations must
+come from this fork; the upstream BeamoINT Homebrew tap alone is not sufficient.
