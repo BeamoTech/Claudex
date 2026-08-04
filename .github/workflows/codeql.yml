@@ -12,8 +12,10 @@ on:
 permissions:
   contents: read
 
+# Keep scheduled scans in their own queue; newer branch and PR runs still
+# supersede stale work for the same event and ref.
 concurrency:
-  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  group: codeql-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
