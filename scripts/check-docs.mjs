@@ -23,7 +23,8 @@ const requiredFiles = [
   '.github/ISSUE_TEMPLATE/config.yml',
   '.github/pull_request_template.md',
   '.github/CODEOWNERS',
-  '.github/dependabot.yml',
+  // Dependabot version-update config is intentionally absent; repository-level
+  // settings are managed separately and no update workflow should be required.
   '.github/labeler.yml',
   '.github/workflows/codeql.yml',
   '.github/workflows/dependency-review.yml',
