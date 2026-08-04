@@ -16,9 +16,9 @@ permissions:
   contents: read
 
 # A newer commit supersedes an in-flight run for the same ref. Reusable
-# workflow calls remain independent so a caller controls their lifecycle.
+# workflow calls get a per-run group so callers remain independent.
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.ref }}
+  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
 
 jobs:
