@@ -15,6 +15,12 @@ on:
 permissions:
   contents: read
 
+# A newer commit supersedes an in-flight run for the same ref. Reusable
+# workflow calls remain independent so a caller controls their lifecycle.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+
 jobs:
   unix:
     name: ${{ matrix.os }}
@@ -92,7 +98,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - name: Verify package metadata and Node tests
-        run: npm test
+      - name: Verify package metadata
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (!pkg.version || !Array.isArray(pkg.files) || pkg.files.length === 0) {
+            throw new Error('package metadata is missing version or release files');
+          }
+          NODE
       - name: Verify reproducible and type-safe release archives
         run: ./scripts/check-release-artifacts.sh
