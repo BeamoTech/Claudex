@@ -1,0 +1,11 @@
+# Keep agent instruction files and durable memory readable by Cursor CLI/editor.
+# Cursor honors .gitignore for indexing; these negations re-include the files.
+# `.ai/` is a hidden directory and is otherwise easy for search/index to skip.
+!/AGENTS.md
+!/CLAUDE.md
+!/GEMINI.md
+!/GROK.md
+!/.github/
+!/.github/copilot-instructions.md
+!/.ai/
+!/.ai/**

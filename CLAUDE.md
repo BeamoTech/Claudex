@@ -152,3 +152,18 @@ The installer writes private runtime config to `~/.config/claudex/env`; `env.exa
 ## Releasing
 
 Maintainers release from a clean `main` after CI passes: bump `CHANGELOG.md` (Unreleased -> SemVer version, kept in sync with `package.json`), tag `vMAJOR.MINOR.PATCH`, push the tag, publish a GitHub Release, then update the Homebrew tap / Scoop bucket / WinGet manifest with the exact release asset hashes.
+
+<!-- BEGIN BEAMO STORAGE HYGIENE -->
+## Local storage care
+
+Run `/Users/HP/dev/storage-maintenance --report` before and after work that may
+create more than 1 GiB. Put disposable release files below `$TMPDIR`. Remove
+them after release proof is saved, or register a non Git staging directory
+with a short TTL after the released bytes are verified.
+
+Keep proof as hashes, URLs, versions, and receipts instead of duplicate
+archives. Remove clean merged worktrees through Git. Preserve dirty or
+unmerged work, source history, browser profiles, application databases,
+Docker volumes, cloud drive data, and personal files. Chrome and Zoom data are
+protected. See `/Users/HP/dev/STORAGE_HYGIENE.md`.
+<!-- END BEAMO STORAGE HYGIENE -->

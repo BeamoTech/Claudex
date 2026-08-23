@@ -1,0 +1,12 @@
+---
+description: Durable .ai/memory index for Cursor CLI and editor. Always apply so hidden memory files stay readable.
+alwaysApply: true
+---
+
+Follow `AGENTS.md` as the source of truth for this repository (Claudex: follow `CLAUDE.md`; `AGENTS.md` is only a pointer).
+
+Durable facts live in `.ai/memory/`. Read `.ai/memory/MEMORY.md` first, then open only the relevant notes. Memories are point-in-time observations; verify drift-prone claims against current code.
+
+These files are inside a hidden `.ai/` directory. Use the Read tool with the explicit path if search does not list them.
+
+@.ai/memory/MEMORY.md
