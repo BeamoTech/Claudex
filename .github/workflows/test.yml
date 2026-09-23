@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [blacksmith-6vcpu-macos-latest, blacksmith-2vcpu-ubuntu-2404]
+        os: [macos-15, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -42,8 +42,8 @@ jobs:
         run: ./tests/self-update-lock-regressions.ps1
 
   windows:
-    name: blacksmith-2vcpu-windows-2025
-    runs-on: blacksmith-2vcpu-windows-2025
+    name: windows-2025
+    runs-on: windows-2025
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -57,7 +57,7 @@ jobs:
 
   legacy-linux-node:
     name: ubuntu-20.04-managed-node
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     container: ubuntu:20.04
     timeout-minutes: 10
     steps:
@@ -78,7 +78,7 @@ jobs:
 
   node-18-shared-runtime:
     name: node-18-shared-runtime
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -92,7 +92,7 @@ jobs:
 
   package-artifacts:
     name: package-artifacts
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

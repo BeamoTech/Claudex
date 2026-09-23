@@ -20,7 +20,7 @@ jobs:
   expected:
     name: Resolve expected release
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.release.outputs.version }}
     steps:
@@ -40,7 +40,7 @@ jobs:
   linux:
     name: Linux install from claudex.work
     needs: expected
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       EXPECTED_VERSION: ${{ needs.expected.outputs.version }}
@@ -65,7 +65,7 @@ jobs:
   macos:
     name: macOS install from claudex.work
     needs: expected
-    runs-on: blacksmith-6vcpu-macos-latest
+    runs-on: macos-15
     timeout-minutes: 20
     env:
       EXPECTED_VERSION: ${{ needs.expected.outputs.version }}
@@ -90,7 +90,7 @@ jobs:
   windows:
     name: Windows install from claudex.work
     needs: expected
-    runs-on: blacksmith-2vcpu-windows-2025
+    runs-on: windows-2025
     timeout-minutes: 30
     env:
       EXPECTED_VERSION: ${{ needs.expected.outputs.version }}
