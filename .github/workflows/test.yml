@@ -11,15 +11,20 @@ on:
         description: Git ref to test (defaults to the triggering ref)
         required: false
         type: string
+      preserve_run:
+        description: Keep each reusable verification gate independent
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
 
-# A newer commit supersedes an in-flight direct run for the same ref. The
-# release gate passes a ref and gets a per-run group so its check stays intact.
+# A newer commit supersedes an in-flight direct run for the same ref. Reusable
+# calls keep independent gates even when the caller omits the optional ref.
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref && github.run_id || github.ref }}
-  cancel-in-progress: ${{ !inputs.ref }}
+  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ inputs.preserve_run && github.run_id || github.ref }}
+  cancel-in-progress: ${{ !inputs.preserve_run }}
 
 jobs:
   unix:
