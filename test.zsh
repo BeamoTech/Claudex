@@ -2142,7 +2142,7 @@ output=""; url=""
 while (( $# > 0 )); do
   case "$1" in --output) output="$2"; shift 2 ;; --write-out) shift 2 ;; -*) shift ;; *) url="$1"; shift ;; esac
 done
-if [[ "$output" == /dev/null ]]; then printf '%s' 'https://github.com/BeamoINT/Claudex/releases/tag/v9.8.7'; exit; fi
+if [[ "$output" == /dev/null ]]; then printf '%s' "${FAKE_BOOTSTRAP_LATEST_REDIRECT:-https://github.com/BeamoTech/Claudex/releases/tag/v9.8.7}"; exit; fi
 case "$url" in */SHA256SUMS) cp "$FAKE_BOOTSTRAP_FIXTURE/SHA256SUMS" "$output" ;; *) cp "$FAKE_BOOTSTRAP_FIXTURE/claudex-9.8.7.tar.gz" "$output" ;; esac
 EOF
 chmod +x "$tmp/bootstrap-bin/curl"
@@ -2152,6 +2152,16 @@ PATH="$tmp/bootstrap-bin:/usr/bin:/bin" TMPDIR="$bootstrap_tmp" \
   "$root/bootstrap.sh" --login >/dev/null
 [[ "$(<"$bootstrap_install_log")" == 'archive:--login' ]]
 [[ -z "$(find "$bootstrap_tmp" -mindepth 1 -maxdepth 1 -print -quit)" ]]
+rm -f "$bootstrap_install_log"
+if PATH="$tmp/bootstrap-bin:/usr/bin:/bin" TMPDIR="$bootstrap_tmp" \
+  FAKE_BOOTSTRAP_FIXTURE="$bootstrap_fixture" FAKE_BOOTSTRAP_INSTALL_LOG="$bootstrap_install_log" \
+  FAKE_BOOTSTRAP_LATEST_REDIRECT='https://github.com/BeamoINT/Claudex/releases/tag/v9.8.7' \
+  "$root/bootstrap.sh" >"$tmp/bootstrap-old-owner.stdout" 2>"$tmp/bootstrap-old-owner.stderr"; then
+  printf '%s\n' 'expected redirect to previous repository owner to fail' >&2
+  exit 1
+fi
+grep -F 'the latest-release redirect did not stay on the expected GitHub repository' "$tmp/bootstrap-old-owner.stderr" >/dev/null
+[[ ! -e "$bootstrap_install_log" ]]
 printf x >> "$bootstrap_archive"
 if PATH="$tmp/bootstrap-bin:/usr/bin:/bin" TMPDIR="$bootstrap_tmp" \
   FAKE_BOOTSTRAP_FIXTURE="$bootstrap_fixture" FAKE_BOOTSTRAP_INSTALL_LOG="$bootstrap_install_log" \
