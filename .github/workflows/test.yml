@@ -11,15 +11,20 @@ on:
         description: Git ref to test (defaults to the triggering ref)
         required: false
         type: string
+      preserve_run:
+        description: Keep each reusable verification gate independent
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
 
-# A newer commit supersedes an in-flight run for the same ref. Reusable
-# workflow calls get a per-run group so callers remain independent.
+# A newer commit supersedes an in-flight direct run for the same ref. Reusable
+# calls keep independent gates even when the caller omits the optional ref.
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ inputs.preserve_run && github.run_id || github.ref }}
+  cancel-in-progress: ${{ !inputs.preserve_run }}
 
 jobs:
   unix:
@@ -64,7 +69,7 @@ jobs:
       - name: Install checkout prerequisites
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl git jq
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}

@@ -62,13 +62,18 @@ node tests/skill-bridge.test.cjs   # discovery/materialization behavior
 node tests/skill-contract.test.cjs # Claude/Codex compatibility contract
 node tests/skill-security.test.cjs # hostile filesystem/plugin inputs
 bash -n claudex codex-session install.sh statusline usage-limit
-zsh -n test.zsh
+bash -n test.zsh
 git diff --check
 ```
 
 There is no single test runner: `test.zsh`/`test.ps1` are one large suite of isolated regressions using fake homes and fake provider commands (Codex, Claude Code, curl, CLIProxyAPI) so tests never touch a real session. To narrow scope while iterating, grep the suite file for the relevant test function name and read it directly; there's no `--filter` flag.
 
-CI (`.github/workflows/test.yml`) runs on every push to `main` and every PR: the Unix suite on macOS + Ubuntu, the PowerShell suite on Windows, plus three Ubuntu jobs: `package-artifacts` (`npm test` + `scripts/check-release-artifacts.sh`), `node-18-shared-runtime` (`npm test` on the minimum supported Node), and `legacy-linux-node` (managed Node fallback in an Ubuntu 20.04 container).
+CI (`.github/workflows/test.yml`) runs on every push to `main` and every PR:
+the Unix suite on macOS + Ubuntu, the PowerShell suite on Windows, plus three
+Ubuntu jobs: `package-artifacts` (package metadata and reproducible archive
+checks), `node-18-shared-runtime` (`npm test` on the minimum supported Node),
+and `legacy-linux-node` (managed Node fallback in an Ubuntu 20.04 container).
+Current runner selection and its cost exception are in `docs/development.md`.
 
 ## Architecture
 

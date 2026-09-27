@@ -98,7 +98,7 @@ platform:
 ```bash
 node --check preload.cjs
 bash -n claudex codex-session install.sh statusline usage-limit
-zsh -n test.zsh
+bash -n test.zsh
 ```
 
 GitHub Actions runs the complete isolated suite on macOS, Ubuntu, and Windows.
