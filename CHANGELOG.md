@@ -5,6 +5,14 @@ uses [Semantic Versioning](https://semver.org/) for tagged releases.
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-09-27
+
+### Fixed
+
+- Restored the verified source bootstrap after the GitHub repository moved to
+  BeamoTech by resolving releases from the canonical repository on Unix and
+  Windows.
+
 ## [1.6.3] - 2026-09-26
 
 ### Changed
@@ -502,7 +510,8 @@ uses [Semantic Versioning](https://semver.org/) for tagged releases.
 - Claude in Chrome first party profile support.
 - Cross platform regression coverage in GitHub Actions.
 
-[Unreleased]: https://github.com/BeamoINT/Claudex/compare/v1.6.3...HEAD
+[Unreleased]: https://github.com/BeamoTech/Claudex/compare/v1.6.4...HEAD
+[1.6.4]: https://github.com/BeamoTech/Claudex/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/BeamoINT/Claudex/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/BeamoINT/Claudex/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/BeamoINT/Claudex/compare/v1.6.0...v1.6.1

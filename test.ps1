@@ -55,6 +55,9 @@ function Remove-TestPathWithRetry([string] $Path, [int] $TimeoutMilliseconds = 5
 }
 
 try {
+    $bootstrapSource = Get-Content -LiteralPath (Join-Path $root 'bootstrap.ps1') -Raw
+    Assert-True ($bootstrapSource.Contains('$repositoryUrl = ''https://github.com/BeamoTech/Claudex''')) 'Windows bootstrap uses the canonical release repository'
+    Assert-True ($bootstrapSource.Contains('$apiUrl = ''https://api.github.com/repos/BeamoTech/Claudex/releases/latest''')) 'Windows bootstrap uses the canonical releases API'
     [IO.Directory]::CreateDirectory($testConfig) | Out-Null
     [IO.Directory]::CreateDirectory($fakeBin) | Out-Null
     if ($isWindowsPlatform -and $env:CI) {

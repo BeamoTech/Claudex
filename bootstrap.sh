@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly repository_url="https://github.com/BeamoINT/Claudex"
+readonly repository_url="https://github.com/BeamoTech/Claudex"
 readonly latest_url="$repository_url/releases/latest"
 temporary=""
 
