@@ -2977,12 +2977,14 @@ process.stdout.write(JSON.stringify({
         [IO.Directory]::CreateDirectory($statusRefreshConfig) | Out-Null
         [IO.File]::WriteAllText($statusRefreshHelper, @'
 param([switch] $RefreshCache, [switch] $LockHeld, [string] $LockToken)
-[IO.File]::WriteAllLines($env:STATUS_REFRESH_PRIVATE_ENV_LOG, @(
+$pendingLog = "$env:STATUS_REFRESH_PRIVATE_ENV_LOG.$PID.pending"
+[IO.File]::WriteAllLines($pendingLog, @(
     "MANTLE=$env:ANTHROPIC_BEDROCK_MANTLE_BASE_URL",
     "VERTEX_PROJECT=$env:ANTHROPIC_VERTEX_PROJECT_ID",
     "FOUNDRY_RESOURCE=$env:ANTHROPIC_FOUNDRY_RESOURCE",
     "FOUNDRY_API_KEY=$env:ANTHROPIC_FOUNDRY_API_KEY"
 ))
+[IO.File]::Move($pendingLog, $env:STATUS_REFRESH_PRIVATE_ENV_LOG)
 '@, $utf8)
         $statusRefreshEnvironment = @{}
         foreach ($statusRefreshName in @(
@@ -3001,10 +3003,16 @@ param([switch] $RefreshCache, [switch] $LockHeld, [string] $LockToken)
             $env:ANTHROPIC_FOUNDRY_RESOURCE = 'private-foundry-resource'
             $env:ANTHROPIC_FOUNDRY_API_KEY = 'private-foundry-secret'
             '{"session_id":"private-refresh","model":{"id":"gpt-5.6-sol"},"context_window":{"used_percentage":5}}' | & (Join-Path $root 'statusline.ps1') | Out-Null
-            for ($attempt = 0; $attempt -lt 100 -and -not (Test-Path -LiteralPath $statusRefreshLog -PathType Leaf); $attempt++) {
+            $statusRefreshLines = @()
+            $statusRefreshDeadline = [DateTime]::UtcNow.AddSeconds(20)
+            while ($statusRefreshLines.Count -lt 4 -and [DateTime]::UtcNow -lt $statusRefreshDeadline) {
+                if (Test-Path -LiteralPath $statusRefreshLog -PathType Leaf) {
+                    try { $statusRefreshLines = @([IO.File]::ReadAllLines($statusRefreshLog)) } catch [IO.IOException] { }
+                }
+                if ($statusRefreshLines.Count -ge 4) { break }
                 Start-Sleep -Milliseconds 20
             }
-            $statusRefreshLines = @([IO.File]::ReadAllLines($statusRefreshLog))
+            Assert-True ($statusRefreshLines.Count -eq 4) 'status refresh helper writes a complete environment log'
             Assert-True (($statusRefreshLines -join '|') -eq 'MANTLE=|VERTEX_PROJECT=|FOUNDRY_RESOURCE=|FOUNDRY_API_KEY=') 'status refresh helper receives no private cloud-provider environment'
         } finally {
             foreach ($statusRefreshName in $statusRefreshEnvironment.Keys) {

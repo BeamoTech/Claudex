@@ -1762,7 +1762,14 @@ printf '%s\n' '{"session_id":"private-refresh","model":{"id":"gpt-5.6-sol"},"con
   ANTHROPIC_FOUNDRY_RESOURCE='private-foundry-resource' \
   ANTHROPIC_FOUNDRY_API_KEY='private-foundry-secret' \
   "$root/statusline" >/dev/null
-for _ in {1..100}; do [[ -s "$status_refresh_log" ]] && break; sleep 0.02; done
+# Refresh runs in the background. Wait for all four lines before reading the
+# helper's evidence so loaded hosts cannot expose a partial write.
+for _ in {1..1000}; do
+  if [[ -s "$status_refresh_log" ]] && [[ $(wc -l < "$status_refresh_log") -ge 4 ]]; then break; fi
+  sleep 0.02
+done
+[[ -s "$status_refresh_log" ]] || { printf '%s\n' 'status refresh helper did not write its environment log' >&2; exit 1; }
+[[ $(wc -l < "$status_refresh_log") -eq 4 ]] || { printf '%s\n' 'status refresh helper wrote an incomplete environment log' >&2; exit 1; }
 [[ "$(<"$status_refresh_log")" == $'MANTLE=\nVERTEX_PROJECT=\nFOUNDRY_RESOURCE=\nFOUNDRY_API_KEY=' ]]
 
 printf '%s\n' 'Codex 7d 16% left · Review 7d 9% left · Extra-long-capacity-window 30d 8% left' \

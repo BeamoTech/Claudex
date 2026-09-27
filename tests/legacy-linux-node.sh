@@ -6,8 +6,13 @@ readonly temporary="$(mktemp -d)"
 trap 'rm -rf "$temporary"' EXIT
 
 [[ "$(id -u)" == 0 ]] || { printf '%s\n' 'legacy Linux runtime test must run as root in a disposable container' >&2; exit 1; }
-apt-get update >/dev/null
-DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl jq >/dev/null
+# CI installs these before checkout. Standalone container runs still install
+# missing tools, but an already prepared runner avoids a second apt index fetch.
+if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1 || \
+    [[ ! -s /etc/ssl/certs/ca-certificates.crt ]]; then
+  apt-get update >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl jq >/dev/null
+fi
 
 home="$temporary/home"
 fake_bin="$temporary/bin"

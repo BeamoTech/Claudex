@@ -15,11 +15,11 @@ on:
 permissions:
   contents: read
 
-# A newer commit supersedes an in-flight run for the same ref. Reusable
-# workflow calls get a per-run group so callers remain independent.
+# A newer commit supersedes an in-flight direct run for the same ref. The
+# release gate passes a ref and gets a per-run group so its check stays intact.
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+  group: test-${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref && github.run_id || github.ref }}
+  cancel-in-progress: ${{ !inputs.ref }}
 
 jobs:
   unix:
@@ -64,7 +64,7 @@ jobs:
       - name: Install checkout prerequisites
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl git jq
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
