@@ -6,12 +6,18 @@ Read `.ai/memory/MEMORY.md` only when prior context is relevant.
 
 ## CI, cost and documentation
 
-Read `~/dev/AGENTS.md` for shared checkout, cost, documentation and storage rules.
+When present, read `~/dev/AGENTS.md` for workspace rules. This guide also applies
+to standalone checkouts. Follow the repository's mandated CI provider; otherwise
+prefer verified free Cloud Build, then CodeBuild, then Blacksmith. Include shared
+usage, machine, logging, storage and network costs with headroom; never reduce
+verification or security to save cost. Keep one document per topic and link detail.
 
 - Iterate locally; run the applicable full local gate before release. Hosted
   CI is only for necessary final public/customer production verification,
-  never routine work, draft PRs, previews or unshipped instruction/doc maintenance. Local
-  scripts named `ci` remain local; do not push merely to trigger CI.
+  do not manually trigger it for routine work, draft PRs, previews or unshipped
+  instruction/doc maintenance. Authorized PRs/pushes still require their automatic
+  checks; never disable or bypass them. Local scripts named `ci` remain local;
+  do not push merely to trigger CI.
 - Run the fewest required hosted jobs. Reuse only evidence for the exact final
   SHA, artifacts and config; revalidate after changes. Fix every candidate/gate
   failure and material warning, then rerun until all applicable checks pass.
