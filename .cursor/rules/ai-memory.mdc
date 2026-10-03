@@ -3,7 +3,7 @@ description: Durable .ai/memory index for Cursor CLI and editor. Always apply so
 alwaysApply: true
 ---
 
-Follow `AGENTS.md` as the source of truth for this repository (Claudex: follow `AGENTS.md`; `AGENTS.md` is only a pointer).
+Follow `AGENTS.md` as the sole project instruction file.
 
 Durable facts live in `.ai/memory/`. Read `.ai/memory/MEMORY.md` first, then open only the relevant notes. Memories are point-in-time observations; verify drift-prone claims against current code.
 
