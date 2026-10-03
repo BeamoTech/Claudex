@@ -46,9 +46,16 @@ Node.js 18 runtime. The hosted matrix does not currently include ARM64 or WSL;
 the root README distinguishes those supported paths from configurations tested
 on hosted runners.
 
+Claudex is public, so [standard GitHub runners incur no Actions minute charges](https://docs.github.com/en/actions/concepts/billing-and-usage).
+The current jobs use those runners. This is the cost exception to the workspace
+preference for Blacksmith: the [last Blacksmith matrix](https://github.com/BeamoTech/Claudex/actions/runs/35803572683)
+waited nearly three hours for its macOS job, while the [current GitHub matrix](https://github.com/BeamoTech/Claudex/actions/runs/36283161738)
+started that job within seconds. Recheck repository visibility, runner access,
+queue time, and exact source coverage before changing providers.
+
 CodeQL scans the JavaScript compatibility surface on every pull request and on
 a weekly schedule. Dependency Review blocks newly introduced high or critical
-dependency vulnerabilities, Dependabot proposes pinned dependency updates, and
+dependency vulnerabilities, and
 the pull request labeler identifies affected components and platforms. All
 third party GitHub Actions are pinned to immutable commits.
 
@@ -61,7 +68,7 @@ Useful focused checks:
 node scripts/check-docs.mjs
 node --check preload.cjs
 bash -n claudex codex-session install.sh statusline usage-limit
-zsh -n test.zsh
+bash -n test.zsh
 git diff --check
 ```
 

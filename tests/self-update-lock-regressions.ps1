@@ -12,6 +12,10 @@ $shell = (Get-Process -Id $PID).Path
 $isWindowsPlatform = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
 $scriptPath = Join-Path $root 'self-update.ps1'
 $arguments = @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $scriptPath + '"'), '-Check')
+# Native PowerShell startup and lock recovery can exceed 15 seconds on a busy
+# runner. The wait remains bounded, and cleanup terminates any timed out child.
+$exitTimeoutMs = 45000
+$script:startedChecks = @()
 
 function Assert-True([bool] $Condition, [string] $Message) {
     if (-not $Condition) { throw "assertion failed: $Message" }
@@ -50,7 +54,9 @@ function Start-Check {
         PassThru = $true
     }
     if ($isWindowsPlatform) { $parameters.WindowStyle = 'Hidden' }
-    return Start-Process @parameters
+    $process = Start-Process @parameters
+    $script:startedChecks += $process
+    return $process
 }
 
 function Invoke-ExpectedFailedCheck {
@@ -121,10 +127,10 @@ try {
     Wait-File (Join-Path $temporary 'b-ready')
     $bNonce = ([IO.File]::ReadAllLines((Join-Path $lock 'owner')) | Where-Object { $_.StartsWith('nonce=') })[0]
     Continue-Pause 'a'
-    Assert-True ($a.WaitForExit(15000)) 'paused A exits'
+    Assert-True ($a.WaitForExit($exitTimeoutMs)) 'paused A exits'
     Assert-True ([IO.File]::ReadAllText((Join-Path $lock 'owner')).Contains($bNonce)) 'A preserves B generation'
     Continue-Pause 'b'
-    Assert-True ($b.WaitForExit(15000)) 'B exits'
+    Assert-True ($b.WaitForExit($exitTimeoutMs)) 'B exits'
     Assert-True (-not (Test-Path -LiteralPath $lock)) 'B releases exact generation'
 
     # A new creator can resume inside a replacement lock published by the old
@@ -139,7 +145,7 @@ try {
     [IO.File]::WriteAllText((Join-Path $lock 'owner.json'), "{`"pid`":$PID,`"token`":`"legacy-b`"}`n", $utf8)
     Remove-Item -LiteralPath (Join-Path $update 'abandoned-mixed-a') -Recurse -Force
     Continue-Pause 'mixed-a'
-    Assert-True ($mixedA.WaitForExit(15000) -and $mixedA.ExitCode -ne 0) 'mixed protocol A exits outside update section'
+    Assert-True ($mixedA.WaitForExit($exitTimeoutMs) -and $mixedA.ExitCode -ne 0) 'mixed protocol A exits outside update section'
     Assert-True ([IO.File]::ReadAllText((Join-Path $lock 'owner.json')).Contains('legacy-b')) 'mixed protocol A preserves legacy B owner'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $lock 'generation'))) 'mixed protocol A withdraws only its injected generation'
     Assert-True (@(Get-ChildItem -LiteralPath $update -Directory -Filter 'lock.quarantine.*' -ErrorAction SilentlyContinue).Count -eq 0) 'mixed protocol cleanup leaves no barrier'
@@ -160,7 +166,7 @@ try {
     (Get-Item -LiteralPath $lock).CreationTimeUtc = $abandonedCreationTime
     Remove-Item -LiteralPath (Join-Path $update 'abandoned-empty-b-a') -Recurse -Force
     Continue-Pause 'empty-b'
-    Assert-True ($emptyBA.WaitForExit(15000) -and $emptyBA.ExitCode -ne 0) 'A rejects an empty replacement directory'
+    Assert-True ($emptyBA.WaitForExit($exitTimeoutMs) -and $emptyBA.ExitCode -ne 0) 'A rejects an empty replacement directory'
     Assert-True ((Test-Path -LiteralPath $lock -PathType Container) -and
         -not (Test-Path -LiteralPath (Join-Path $lock 'generation')) -and
         -not (Test-Path -LiteralPath (Join-Path $lock 'owner'))) 'A preserves B before legacy owner publication'
@@ -203,7 +209,7 @@ try {
     Continue-Pause 'x-before'
     Wait-File (Join-Path $temporary 'x-after-ready')
     $z = Start-Check
-    Assert-True ($z.WaitForExit(15000) -and $z.ExitCode -ne 0) 'Z remains outside quarantined update section'
+    Assert-True ($z.WaitForExit($exitTimeoutMs) -and $z.ExitCode -ne 0) 'Z remains outside quarantined update section'
     Continue-Pause 'x-after'
     for ($attempt = 0; $attempt -lt 500; $attempt++) {
         if ((Test-Path -LiteralPath (Join-Path $lock 'owner')) -and [IO.File]::ReadAllText((Join-Path $lock 'owner')).Contains($yNonce)) { break }
@@ -211,15 +217,19 @@ try {
     }
     Assert-True ([IO.File]::ReadAllText((Join-Path $lock 'owner')).Contains($yNonce)) 'X restores exact moved Y nonce'
     Continue-Pause 'y'
-    Assert-True ($y.WaitForExit(15000)) 'Y exits'
-    Assert-True ($x.WaitForExit(15000)) 'X exits'
+    Assert-True ($y.WaitForExit($exitTimeoutMs) -and $y.ExitCode -eq 0) 'Y exits successfully after recovering its lock'
+    Assert-True ($x.WaitForExit($exitTimeoutMs)) 'X exits'
 
     # Hardlink denial falls back to CreateNew and an incomplete publication is
-    # withdrawn without leaving an owner or quarantine barrier.
+    # withdrawn without leaving an owner or quarantine barrier. A just exited
+    # race participant can leave a dead lock within the two second grace, so
+    # this successful acquisition uses the normal retry budget.
+    $env:CLAUDEX_TEST_UPDATE_LOCK_ATTEMPTS = '100'
     $env:CLAUDEX_TEST_FORCE_HARDLINK_FAILURE = '1'
     & $shell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $scriptPath -Check | Out-Null
     Assert-True ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $lock)) 'CreateNew fallback succeeds'
     Remove-Item Env:CLAUDEX_TEST_FORCE_HARDLINK_FAILURE
+    $env:CLAUDEX_TEST_UPDATE_LOCK_ATTEMPTS = '12'
     $env:CLAUDEX_TEST_FORCE_PUBLICATION_FAILURE = '1'
     $publicationFailureExit = Invoke-ExpectedFailedCheck
     Assert-True ($publicationFailureExit -ne 0 -and -not (Test-Path -LiteralPath $lock)) 'incomplete publication is removed'
@@ -273,11 +283,20 @@ try {
     $identity = [string] (Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks
     [IO.File]::WriteAllText((Join-Path $lock 'owner'), "pid=$PID`nidentity=$identity`nnonce=replacement`n", $utf8)
     Continue-Pause 'exit'
-    Assert-True ($oldOwner.WaitForExit(15000)) 'obsolete owner exits'
+    Assert-True ($oldOwner.WaitForExit($exitTimeoutMs)) 'obsolete owner exits'
     Assert-True ([IO.File]::ReadAllText((Join-Path $lock 'owner')).Contains('nonce=replacement')) 'exit hook preserves replacement generation'
 
     [Console]::WriteLine('PowerShell self update lock regressions passed')
 } finally {
+    foreach ($check in $script:startedChecks) {
+        try {
+            if (-not $check.HasExited) {
+                $check.Kill()
+                [void] $check.WaitForExit(5000)
+            }
+        } catch { }
+        try { $check.Dispose() } catch { }
+    }
     foreach ($name in @('CLAUDEX_CONFIG_DIR', 'CLAUDEX_TEST_MODE', 'CLAUDEX_TEST_UPDATE_FIXTURE_DIR',
             'CLAUDEX_TEST_UPDATE_LOCK_ATTEMPTS', 'CLAUDEX_TEST_FORCE_HARDLINK_FAILURE', 'CLAUDEX_TEST_FORCE_PUBLICATION_FAILURE')) {
         Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
