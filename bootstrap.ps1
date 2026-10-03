@@ -5,8 +5,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2.0
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-$repositoryUrl = 'https://github.com/BeamoINT/Claudex'
-$apiUrl = 'https://api.github.com/repos/BeamoINT/Claudex/releases/latest'
+$repositoryUrl = 'https://github.com/BeamoTech/Claudex'
+$apiUrl = 'https://api.github.com/repos/BeamoTech/Claudex/releases/latest'
 $temporary = Join-Path ([IO.Path]::GetTempPath()) ('claudex-bootstrap-' + [guid]::NewGuid().ToString('N'))
 
 function Fail([string] $Message) {

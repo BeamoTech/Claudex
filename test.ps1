@@ -55,6 +55,7 @@ function Remove-TestPathWithRetry([string] $Path, [int] $TimeoutMilliseconds = 5
 }
 
 try {
+    & (Join-Path $root 'tests/bootstrap-windows.test.ps1')
     [IO.Directory]::CreateDirectory($testConfig) | Out-Null
     [IO.Directory]::CreateDirectory($fakeBin) | Out-Null
     if ($isWindowsPlatform -and $env:CI) {
