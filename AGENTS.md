@@ -6,40 +6,41 @@ Read `.ai/memory/MEMORY.md` only when prior context is relevant.
 
 ## CI, cost and documentation
 
-- Use **Blacksmith** runners for supported GitHub Actions CI. Check the current
-  [runner documentation](https://docs.blacksmith.sh/blacksmith-runners/overview)
-  and repository access before selecting labels. Preserve required checks and
-  native platform coverage; retain an existing gate until its replacement proves
-  equivalent coverage for the same source. Record any provider exception.
-- Minimize total cost across CI, hosting, storage, network, APIs, AI and tooling.
-  Choose the least costly option that meets the task's quality, security,
-  reliability and performance requirements. Preserve mandated models and gates;
-  never trade away correctness, coverage, accessibility or data safety for price.
-- Use the fewest hosted CI runs that still cover changed paths, scheduled
-  checks and required gates. Iterate locally, route jobs by scope, reuse valid
-  caches, avoid duplicate runs and bound retries/concurrency. Cancel superseded
-  verification when safe; review releases and migrations before cancellation.
-  Preserve checks for the exact commit and native platforms. Measure usage, expire disposable
-  artifacts and retire only verified idle resources within task authority.
-- Keep Markdown focused: one canonical home per topic, short sections and useful
-  links. Keep commands and safeguards near their use; move detailed history to
-  dated evidence. Update stale guidance against code, preserve release records,
-  and avoid duplicating this policy in every document.
+When present, read `~/dev/AGENTS.md` for workspace rules. This guide also applies
+to standalone checkouts. Follow the repository's mandated CI provider; otherwise
+prefer verified free Cloud Build, then CodeBuild, then Blacksmith. Include shared
+usage, machine, logging, storage and network costs with headroom; never reduce
+verification or security to save cost. Keep one document per topic and link detail.
+
+- Iterate locally; run the applicable full local gate before release. Hosted
+  CI is only for necessary final public/customer production verification,
+  do not manually trigger it for routine work, draft PRs, previews or unshipped
+  instruction/doc maintenance. Authorized PRs/pushes still require their automatic
+  checks; never disable or bypass them. Local scripts named `ci` remain local;
+  do not push merely to trigger CI.
+- Run the fewest required hosted jobs. Reuse only evidence for the exact final
+  SHA, artifacts and config; revalidate after changes. Fix every candidate/gate
+  failure and material warning, then rerun until all applicable checks pass.
+  Pending, canceled, blocked, timed out and unexpected skips are not passes;
+  path skips require workflow evidence. Never weaken tests/coverage or retry blindly.
+- Check automatic triggers and gate publication on successful verification.
+  Preserve required statuses, branch protection, scheduled security/ops checks,
+  native acceptance and approvals; record proof and verify after deployment.
+  No hosted CI means retain local/manual gates. Changes to automation or
+  publication need task authority. Avoid duplicate providers/runs.
+
+**Project gate:** For instruction maintenance, run `node scripts/check-docs.mjs` locally. For
+public launcher/installer releases, finish applicable Unix/PowerShell and npm
+checks, then require the final platform, minimum Node, legacy Linux and archive
+matrix plus applicable security gates. Tags can trigger release publication;
+use the existing gated release flow and exact asset hashes for downstream
+manifests. Do not manually repeat the matrix for ordinary development.
 
 ## What this is
 
-Claudex is an open source compatibility layer that lets Codex GPT models and
-native Claude models run through the Claude Code terminal interface. Managed
-GPT sessions reuse an existing local Codex login, run a pinned, verified
-CLIProxyAPI binary bound to `127.0.0.1`, and launch an isolated Claude Code
-profile pointed at that proxy. Native Claude model routes use the caller owned
-Claude profile in a separate process after managed routing is removed.
-Fableplan uses a native read only Fable planner and an isolated managed Terra
-implementer, transferring only bounded plan text through a private temporary
-file. Claudex does not fork or patch the signed Claude Code executable: it is a
-launcher/wrapper, distributed as Bash + PowerShell scripts.
+Claudex runs Codex GPT and native Claude models through the Claude Code terminal interface without modifying its signed binary. GPT uses existing Codex login, a pinned/verified CLIProxyAPI bound to `127.0.0.1` and isolated Claude profile; native Claude uses the caller profile in a separate process after managed routing is removed. Fableplan passes bounded plan text through a private temporary file from a native read only Fable planner to an isolated managed Terra implementer. Distribution: Bash + PowerShell wrappers.
 
-Production code is intentionally dependency light: Bash, PowerShell, a small Node preload module, and JSON. There is no application build step or bundler.
+Runtime: Bash, PowerShell, one Node preload and JSON; no bundler or application build.
 
 ## Commands
 
@@ -66,7 +67,7 @@ bash -n test.zsh
 git diff --check
 ```
 
-There is no single test runner: `test.zsh`/`test.ps1` are one large suite of isolated regressions using fake homes and fake provider commands (Codex, Claude Code, curl, CLIProxyAPI) so tests never touch a real session. To narrow scope while iterating, grep the suite file for the relevant test function name and read it directly; there's no `--filter` flag.
+`test.zsh`/`test.ps1` are isolated suites using fake homes/providers, never real sessions. For focused work, read the relevant function directly; no `--filter` exists.
 
 CI (`.github/workflows/test.yml`) runs on every push to `main` and every PR:
 the Unix suite on macOS + Ubuntu, the PowerShell suite on Windows, plus three
@@ -104,23 +105,23 @@ sessions, and billing contexts never cross that boundary.
 | Skill bridge | `skill-bridge.cjs` | shared | Snapshot and adapt existing Claude/Codex skills and plugin skills without activating source plugin code |
 | Settings template | `settings.json` | shared | Isolated default Claude Code settings written into the managed config |
 
-Every shared behavior change must touch both the Bash and PowerShell implementation (`claudex`/`claudex.ps1`, `codex-session`/`codex-session.ps1`, etc.): platform drift is treated as a bug unless the underlying OS genuinely lacks the feature, in which case the boundary must be documented, not silently emulated.
+Shared changes must update both Unix and Windows: `claudex`/`claudex.ps1`, `codex-session`/`codex-session.ps1`, etc. Platform drift is a bug; document genuine OS limitations instead of emulating silently.
 
 ### Authentication lifecycle
 
-Codex owns the actual login/logout UX. Claudex only verifies `codex login status`, reads the file backed ChatGPT session from the standard Codex location, and atomically writes the minimum fields CLIProxyAPI needs into Claudex's private credential directory (restrictive permissions). A background watcher fingerprints the standard Codex credential file for the life of a proxied session and re syncs on account changes, clearing any cached usage snapshot/account selection so stale account data can't leak into the footer. Logout always tears down the bridge even if the upstream logout call fails.
+Codex owns login/logout. Claudex checks `codex login status` and atomically copies only required session fields into a private credential directory with restrictive permissions. A watcher fingerprints Codex credentials throughout a proxied session, resyncs on account changes and clears cached usage/account selection. Logout tears down the bridge even if upstream logout fails.
 
 ### Usage limit flow
 
-The status line never blocks on network I/O: it reads a sanitized cached summary and triggers a bounded background refresh when stale. Detailed usage comes from the authenticated web endpoint, falling back to the Codex app server `account/rateLimits/read` interface (fallback disabled while a specific bridge account is explicitly selected, since app server may represent a different account). Identity/credential fields are stripped before any snapshot is written to disk.
+The status line reads a sanitized cache and starts bounded background refresh, never blocking on network I/O. Detailed usage prefers the authenticated web endpoint, then Codex app server `account/rateLimits/read`; disable fallback while a bridge account is selected to avoid another account's data. Strip identity/credentials before persisting snapshots.
 
 ### Context stabilization
 
-Claude Code can emit zero/missing context data transiently during startup and compaction. The status line stores the last trustworthy context percentage per session and reuses only that session's own last known value: never a false zero, and sub-1% usage renders as `<1%`.
+Cache the last trustworthy context percentage per session through transient zero/missing startup or compaction data. Never invent zero or share sessions; values below 1% display `<1%`.
 
 ### Update and compatibility strategy
 
-At every launch, `claudex` reads `claude --help` and only injects flags Claude Code actually supports; unrecognized arguments are passed through unchanged. The installer does a best effort Claude Code update; the launcher re checks on a configurable interval without blocking startup, recovers stale lock directories, and avoids racing an explicit update command. Claudex also updates itself: `claudex self-update` runs the installed helper directly, and unless `CLAUDEX_AUTO_UPDATE` is off the launcher spawns that helper as a background check. The CLIProxyAPI dependency is pinned by version and SHA-256 per OS/arch pair and verified at install time: never vendored into the repo.
+At launch, read `claude --help`, inject only supported flags and pass unknown arguments unchanged. Install/update Claude Code on a best effort basis; bounded configurable checks must not block startup or race explicit updates, and stale locks must recover. `claudex self-update` runs its helper; the launcher checks it in the background unless `CLAUDEX_AUTO_UPDATE` is off. CLIProxyAPI stays version/SHA-256 pinned for every OS/arch, verified at install and never vendored.
 
 ### Trust boundaries
 
@@ -145,7 +146,7 @@ At every launch, `claudex` reads `claude --help` and only injects flags Claude C
 8. Fail clearly when an essential upstream interface is unavailable: no silent degradation.
 9. Add a regression test before considering a bug fixed.
 
-Updating the CLIProxyAPI pin is security sensitive: collect every macOS/Linux/Windows x64/ARM64 asset from the official upstream release, compute each digest independently, update both installers together, and run the full platform test matrix. Never replace a digest just to make a failed download pass.
+For CLIProxyAPI pin updates, fetch all official macOS/Linux/Windows x64/ARM64 assets, independently hash them, update both installers and pass the full platform matrix. Never replace a digest to conceal a bad download.
 
 ## Repository layout
 
@@ -168,24 +169,23 @@ Updating the CLIProxyAPI pin is security sensitive: collect every macOS/Linux/Wi
 
 ## Configuration model
 
-The installer writes private runtime config to `~/.config/claudex/env`; `env.example` documents supported overrides (model aliases, permission mode, concurrency/retry limits, context window/compaction thresholds, usage display cadence, proxy URL/token/binary path, auto update behavior). See `docs/configuration.md` for the full variable table: don't hardcode defaults elsewhere without checking there first, since values like the default model ID or context window change between releases.
+Private config: `~/.config/claudex/env`; `env.example` documents model, permission, retry/concurrency, context, usage, proxy and update overrides. Check `docs/configuration.md` before reusing defaults or model IDs.
 
 ## Releasing
 
-Maintainers release from a clean `main` after CI passes: bump `CHANGELOG.md` (Unreleased -> SemVer version, kept in sync with `package.json`), tag `vMAJOR.MINOR.PATCH`, push the tag, publish a GitHub Release, then update the Homebrew tap / Scoop bucket / WinGet manifest with the exact release asset hashes.
+Release clean `main` after CI passes: align `CHANGELOG.md` and `package.json`, turn Unreleased into SemVer, tag/push `vMAJOR.MINOR.PATCH`, publish GitHub Release, then update Homebrew/Scoop/WinGet with exact asset hashes.
 
 <!-- BEGIN BEAMO STORAGE HYGIENE -->
-## Local storage hygiene
+## Storage
 
-- Run `/Users/HP/dev/storage-maintenance --report` before and after work likely
-  to generate more than 1 GiB. Follow `/Users/HP/dev/STORAGE_HYGIENE.md`.
-- Keep disposable staging under `$TMPDIR` or `/private/tmp`; remove it normally,
-  or register verified staging outside Git after verifying uploaded or released bytes:
-  `storage-maintenance --register PATH --ttl-days 3`. Keep hashes, URLs,
-  versions and receipts instead of duplicate binaries.
-- Remove clean, merged worktrees through Git. Preserve dirty/unmerged work and
-  history; under pressure remove only reproducible dependencies from such work.
-- Never delete others' work, browser profiles, application databases, Docker
-  volumes, cloud drive or personal data. Chrome/Google and Zoom are protected.
-  Do not add cleanup daemons or install from the orphaned home `package.json`.
+- For work generating >1 GiB, run `/Users/HP/dev/storage-maintenance --report`
+  before/after and follow `/Users/HP/dev/STORAGE_HYGIENE.md`.
+- Stage under `$TMPDIR` or `/private/tmp`; clean up normally or register verified
+  staging outside Git with `storage-maintenance --register PATH --ttl-days 3`.
+  Keep hashes/URLs/versions/receipts instead of duplicate binaries.
+- Remove only clean, merged worktrees through Git; preserve dirty/unmerged work
+  and history. Under pressure, remove only reproducible dependencies from them.
+- Preserve others' work, browser profiles (Chrome/Google), Zoom, app databases,
+  Docker volumes, cloud drive and personal data. No cleanup daemons or installs
+  from the orphaned home `package.json`.
 <!-- END BEAMO STORAGE HYGIENE -->
