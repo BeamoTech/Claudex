@@ -217,19 +217,18 @@ Release clean `main` after CI passes: align `CHANGELOG.md` and `package.json`, t
 
 ## Greptile review rules
 
-Greptile reviews pull requests in this repo. Its feedback is part of the work, not decoration.
+### Review before merge
+1. Read every Greptile summary and inline comment for the PR, including earlier review rounds.
+2. Fix each valid finding in the affected source. Reply to each disputed finding on the PR with evidence; never silently discard a finding.
+3. Batch related fixes into one push where practical, then inspect the review for the final head. Repeat as needed and account for every finding.
+4. Do not merge with unaddressed findings, failed required checks, or unresolved safety or release gates.
 
-### The loop (required before merge)
-1. After opening a PR, wait for the Greptile review and read **every** Greptile comment on the PR — inline comments and the summary review.
-2. Fix every valid point in code. If you believe a point is wrong, reply to that comment on the PR explaining why — never silently ignore it.
-3. Push the fixes and let Greptile re-review. Repeat until the review is clean or every remaining comment has an on-PR rebuttal.
-4. Do not merge a PR with unaddressed Greptile comments.
+### When automated review is unavailable
+- A missing first review or stopped review is not proof of exhausted credits. Check available installation permissions, repository settings, review triggers, service status and quota evidence; record the confirmed cause or say it remains unknown.
+- Preserve and address all earlier findings. If automated review cannot complete, require an explicit independent review of the final diff against current main, with reviewer identity, exact head SHA, scope, evidence, findings and remaining limits recorded on the PR. If that review or a required check is unavailable, keep the PR blocked.
 
-### Credit discipline (hard cap — no overage exists)
-- Each author gets **50 included review credits per billing period**. Flex/overage billing is capped at **$0** at the account level: when the credits run out, Greptile simply stops reviewing until the next period. There is no paid overflow and nobody may re-enable it.
-- Every push to a PR can trigger a re-review and burn credits. Batch related fixes into fewer, larger pushes instead of drip-pushing commit-by-commit.
-- Don't open throwaway or duplicate PRs against reviewed branches; close superseded PRs promptly.
-- If reviews stop mid-cycle, assume the allowance is exhausted — finish the loop by reading the last Greptile comments you already have, and note it in the PR.
-
-### Reporting
-- When you finish a PR, state in your summary: Greptile comments received, how many you fixed, how many you rebutted and why.
+### Cost and reporting
+- Do not assert numerical credit allowances, reset dates or account billing settings without current evidence. Do not enable paid overflow, buy credits or expand access to obtain a review.
+- Avoid redundant review requests and duplicate PRs. Batch pushes without reducing verification.
+- Report Greptile findings received, fixed and disputed with reasons, plus review availability, final head, checks performed and outstanding blockers.
+- Preserve repository specific instructions, mirrored guides, formatting rules, production freezes and authorization boundaries. Review approval does not authorize deployment, live trading, sending messages or other external effects.
