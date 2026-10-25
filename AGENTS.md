@@ -214,3 +214,22 @@ Release clean `main` after CI passes: align `CHANGELOG.md` and `package.json`, t
   Docker volumes, cloud drive and personal data. No cleanup daemons or installs
   from the orphaned home `package.json`.
 <!-- END BEAMO STORAGE HYGIENE -->
+
+## Greptile review rules
+
+Greptile reviews pull requests in this repo. Its feedback is part of the work, not decoration.
+
+### The loop (required before merge)
+1. After opening a PR, wait for the Greptile review and read **every** Greptile comment on the PR — inline comments and the summary review.
+2. Fix every valid point in code. If you believe a point is wrong, reply to that comment on the PR explaining why — never silently ignore it.
+3. Push the fixes and let Greptile re-review. Repeat until the review is clean or every remaining comment has an on-PR rebuttal.
+4. Do not merge a PR with unaddressed Greptile comments.
+
+### Credit discipline (hard cap — no overage exists)
+- Each author gets **50 included review credits per billing period**. Flex/overage billing is capped at **$0** at the account level: when the credits run out, Greptile simply stops reviewing until the next period. There is no paid overflow and nobody may re-enable it.
+- Every push to a PR can trigger a re-review and burn credits. Batch related fixes into fewer, larger pushes instead of drip-pushing commit-by-commit.
+- Don't open throwaway or duplicate PRs against reviewed branches; close superseded PRs promptly.
+- If reviews stop mid-cycle, assume the allowance is exhausted — finish the loop by reading the last Greptile comments you already have, and note it in the PR.
+
+### Reporting
+- When you finish a PR, state in your summary: Greptile comments received, how many you fixed, how many you rebutted and why.
